@@ -1,11 +1,11 @@
 import { VocabEntry, VocabStatus } from '../types';
 import { db } from '../lib/firebase';
-import {
-  collection,
-  getDocs,
-  doc,
-  setDoc,
-  deleteDoc,
+import { 
+  collection, 
+  getDocs, 
+  doc, 
+  setDoc, 
+  deleteDoc, 
   writeBatch,
   query,
   getDoc
@@ -24,12 +24,12 @@ export class VocabRepository {
       try {
         const querySnapshot = await getDocs(collection(db, 'users', userId, 'vocab'));
         const entries = querySnapshot.docs.map(doc => doc.data() as VocabEntry);
-
+        
         // Ak je užívateľ nový vo Firebase, skúsime mu tam nahrať demo dáta, alebo dáta z localstorage?
         // Pre jednoduchosť, ak je prázdny, vrátime prázdne pole (alebo seed ak chceme)
         if (entries.length === 0) {
-          // Optional: Migrácia z localstorage pri prvom prihlásení by bola tu.
-          return [];
+            // Optional: Migrácia z localstorage pri prvom prihlásení by bola tu.
+            return []; 
         }
         return entries;
       } catch (e) {
@@ -74,7 +74,7 @@ export class VocabRepository {
 
   static async updateEntries(updatedEntries: VocabEntry[], userId?: string): Promise<void> {
     if (userId && db) {
-      const firestore = db;
+      const firestore = db; // Alias pre TypeScript bezpečnosť v closure
       try {
         const batch = writeBatch(firestore);
         updatedEntries.forEach(entry => {
@@ -88,7 +88,7 @@ export class VocabRepository {
     } else {
       const entries = await this.getLocalStorage();
       const updateMap = new Map(updatedEntries.map(e => [e.id, e]));
-
+      
       const newEntries = entries.map(entry => {
         if (updateMap.has(entry.id)) {
           return updateMap.get(entry.id)!;
