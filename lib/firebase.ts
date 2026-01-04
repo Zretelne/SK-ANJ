@@ -1,6 +1,6 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
 // TOTO SI MUSÍŠ VYPLNIŤ PODĽA SVOJEJ FIREBASE KONZOLY
 // Choď na console.firebase.google.com -> Project Settings -> General -> Your apps
@@ -15,9 +15,9 @@ const firebaseConfig = {
 };
 
 // Inicializácia iba ak máme config (aby aplikácia nespadla, ak to ešte nemáš nastavené)
-let app;
-let auth;
-let db;
+let app: FirebaseApp | undefined;
+let auth: Auth | undefined;
+let db: Firestore | undefined;
 
 try {
   // Kontrola, či je config vyplnený (naivná kontrola dĺžky)
