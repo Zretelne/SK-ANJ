@@ -22,22 +22,39 @@ export class VocabRepository {
   static async getAllEntries(userId?: string): Promise<VocabEntry[]> {
     if (userId && db) {
       try {
+        // --- MIGRÁCIA DÁT: LocalStorage -> Firestore ---
+        // Skontrolujeme, či má užívateľ nejaké dáta v LocalStorage (z doby pred prihlásením)
+        const localData = await this.getLocalStorage(false); // false = nevytvárať seed dáta
+        
+        if (localData.length > 0) {
+          console.log('Migrating local data to Firebase account...');
+          const batch = writeBatch(db);
+          
+          localData.forEach(entry => {
+            // Použijeme ID slovíčka ako ID dokumentu
+            const ref = doc(db, 'users', userId, 'vocab', entry.id);
+            // { merge: true } zabezpečí, že neprepíšeme existujúce polia ak by tam náhodou niečo bolo
+            batch.set(ref, entry, { merge: true });
+          });
+
+          await batch.commit();
+          console.log('Migration successful. Clearing local storage.');
+          
+          // Vyčistíme lokálne úložisko, aby sa dáta neduplikovali pri odhlásení/prihlásení
+          localStorage.removeItem(LOCAL_STORAGE_KEY);
+        }
+        // ----------------------------------------------
+
         const querySnapshot = await getDocs(collection(db, 'users', userId, 'vocab'));
         const entries = querySnapshot.docs.map(doc => doc.data() as VocabEntry);
         
-        // Ak je užívateľ nový vo Firebase, skúsime mu tam nahrať demo dáta, alebo dáta z localstorage?
-        // Pre jednoduchosť, ak je prázdny, vrátime prázdne pole (alebo seed ak chceme)
-        if (entries.length === 0) {
-            // Optional: Migrácia z localstorage pri prvom prihlásení by bola tu.
-            return []; 
-        }
         return entries;
       } catch (e) {
         console.error('Error fetching from Firestore', e);
         return [];
       }
     } else {
-      return this.getLocalStorage();
+      return this.getLocalStorage(true); // true = ak je prázdno, vráť demo dáta
     }
   }
 
@@ -49,7 +66,7 @@ export class VocabRepository {
         console.error('Error adding to Firestore', e);
       }
     } else {
-      const entries = await this.getLocalStorage();
+      const entries = await this.getLocalStorage(true);
       entries.push(entry);
       await this.saveLocalStorage(entries);
     }
@@ -63,7 +80,7 @@ export class VocabRepository {
         console.error('Error updating Firestore', e);
       }
     } else {
-      const entries = await this.getLocalStorage();
+      const entries = await this.getLocalStorage(true);
       const index = entries.findIndex(e => e.id === updatedEntry.id);
       if (index !== -1) {
         entries[index] = updatedEntry;
@@ -86,7 +103,7 @@ export class VocabRepository {
         console.error('Error batch updating Firestore', e);
       }
     } else {
-      const entries = await this.getLocalStorage();
+      const entries = await this.getLocalStorage(true);
       const updateMap = new Map(updatedEntries.map(e => [e.id, e]));
       
       const newEntries = entries.map(entry => {
@@ -107,7 +124,7 @@ export class VocabRepository {
         console.error('Error deleting from Firestore', e);
       }
     } else {
-      const entries = await this.getLocalStorage();
+      const entries = await this.getLocalStorage(true);
       const filtered = entries.filter(e => e.id !== id);
       await this.saveLocalStorage(filtered);
     }
@@ -115,10 +132,15 @@ export class VocabRepository {
 
   // --- Local Storage Helpers ---
 
-  private static async getLocalStorage(): Promise<VocabEntry[]> {
+  /**
+   * @param useSeed Ak je true a storage je prázdny, vráti demo dáta. Ak false, vráti prázdne pole.
+   */
+  private static async getLocalStorage(useSeed: boolean): Promise<VocabEntry[]> {
     try {
       const data = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (!data) return VocabRepository.seedInitialData();
+      if (!data) {
+        return useSeed ? VocabRepository.seedInitialData() : [];
+      }
       return JSON.parse(data);
     } catch (e) {
       console.error('Error reading from storage', e);

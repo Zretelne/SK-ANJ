@@ -1,5 +1,5 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
+import { getAuth, Auth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
 // TOTO SI MUSÍŠ VYPLNIŤ PODĽA SVOJEJ FIREBASE KONZOLY
@@ -18,6 +18,7 @@ const firebaseConfig = {
 let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
 let db: Firestore | undefined;
+let googleProvider: GoogleAuthProvider | undefined;
 
 try {
   // Kontrola, či je config vyplnený (naivná kontrola dĺžky)
@@ -25,6 +26,7 @@ try {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
+    googleProvider = new GoogleAuthProvider();
     console.log('Firebase initialized successfully');
   } else {
     console.warn('Firebase config is missing or invalid. App allows usage but will fallback to LocalStorage only.');
@@ -33,4 +35,4 @@ try {
   console.error('Error initializing Firebase:', e);
 }
 
-export { auth, db };
+export { auth, db, googleProvider };

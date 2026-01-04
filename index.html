@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Slovník</title>
     
+    <!-- PWA Settings -->
+    <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#0a0a0a" />
     
     <!-- iOS Support -->
@@ -12,6 +14,17 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Slovník" />
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/10630/10630567.png" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      html, body, #root {
+        height: 100%;
+        overflow: hidden;
+        background-color: #0a0a0a;
+      }
+      .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+      .pt-safe { padding-top: env(safe-area-inset-top); }
+    </style>
   <script type="importmap">
 {
   "imports": {
@@ -22,8 +35,7 @@
     "firebase/": "https://esm.sh/firebase@^12.7.0/",
     "framer-motion": "https://esm.sh/framer-motion@^12.23.26",
     "vite": "https://esm.sh/vite@^7.3.0",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "vite-plugin-pwa": "https://esm.sh/vite-plugin-pwa@^1.2.0"
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
   }
 }
 </script>
