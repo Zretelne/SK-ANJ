@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { VocabEntry } from '../types';
 import { CheckCircle, XCircle, ArrowRight, Trophy, X } from 'lucide-react';
+import { SpeakerButton } from './UI/SpeakerButton';
 
 interface TestModeProps {
   words: VocabEntry[];
@@ -148,9 +149,12 @@ export const TestMode: React.FC<TestModeProps> = ({ words, onComplete, onRecordR
           </div>
 
           {feedback === 'wrong' && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-3xl p-5 text-center animate-in fade-in slide-in-from-top-2">
-              <span className="text-red-400 text-xs font-bold uppercase tracking-wide">Správna odpoveď</span>
-              <span className="font-bold text-red-200 text-xl block mt-1">{currentWord.english}</span>
+            <div className="bg-red-500/10 border border-red-500/20 rounded-3xl p-5 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+              <div className="text-left">
+                <span className="text-red-400 text-xs font-bold uppercase tracking-wide">Správna odpoveď</span>
+                <span className="font-bold text-red-200 text-xl block mt-1">{currentWord.english}</span>
+              </div>
+              <SpeakerButton text={currentWord.english} className="text-red-500 hover:bg-red-900/20" size={24} />
             </div>
           )}
 

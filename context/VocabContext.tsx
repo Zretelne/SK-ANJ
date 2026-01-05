@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { VocabEntry, VocabStatus, VocabCollection } from '../types';
+import { VocabEntry, VocabStatus, VocabCollection, UserStats } from '../types';
 import { VocabRepository } from '../services/VocabRepository';
+import { StatsService } from '../services/StatsService';
 import { useAuth } from './AuthContext';
 
 interface VocabContextType {
@@ -8,12 +9,13 @@ interface VocabContextType {
   activeCollection: VocabCollection | null;
   entries: VocabEntry[];
   isLoading: boolean;
+  userStats: UserStats;
   
   createCollection: (name: string) => Promise<void>;
   setActiveCollectionId: (id: string) => void;
   deleteCollection: (id: string) => Promise<void>;
 
-  addEntry: (slovak: string, english: string) => Promise<void>;
+  addEntry: (slovak: string, english: string, sentence?: string) => Promise<void>;
   updateEntry: (entry: VocabEntry) => Promise<void>;
   deleteEntry: (id: string) => Promise<void>;
   getEntriesByStatus: (status: VocabStatus) => VocabEntry[];
@@ -31,23 +33,24 @@ export const VocabProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
   const [entries, setEntries] = useState<VocabEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Gamification Stats
+  const [userStats, setUserStats] = useState<UserStats>(StatsService.getEmptyStats());
 
-  // 1. Load Collections on Init/User Change
+  // 1. Load Collections & Stats on Init/User Change
   useEffect(() => {
-    const initCollections = async () => {
+    const initData = async () => {
       if (authLoading) return;
       setIsLoading(true);
       
+      // Load Collections
       const cols = await VocabRepository.getCollections(user?.uid);
-      
       if (cols.length > 0) {
         setCollections(cols);
-        // Default to first if none selected
         if (!activeCollectionId || !cols.find(c => c.id === activeCollectionId)) {
           setActiveCollectionId(cols[0].id);
         }
       } else {
-        // Create Default Collection if none exist
         const defaultCol: VocabCollection = {
             id: crypto.randomUUID(),
             name: 'SK - ANJ',
@@ -57,19 +60,21 @@ export const VocabProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setCollections([defaultCol]);
         setActiveCollectionId(defaultCol.id);
       }
+
+      // Load Stats
+      const stats = await StatsService.getStats(user?.uid);
+      setUserStats(stats);
+
       setIsLoading(false);
     };
 
-    initCollections();
+    initData();
   }, [user, authLoading]);
 
   // 2. Load Entries when Active Collection Changes
   useEffect(() => {
     const loadEntries = async () => {
       if (!activeCollectionId) return;
-      
-      // Don't set global loading here to prevent full screen flicker, 
-      // maybe just local list loading if needed, but for now fast enough.
       const data = await VocabRepository.getAllEntries(activeCollectionId, user?.uid);
       setEntries(data);
     };
@@ -77,6 +82,12 @@ export const VocabProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     loadEntries();
   }, [activeCollectionId, user]);
 
+  // --- Helper to log activity ---
+  const logActivity = async () => {
+    const newStats = StatsService.calculateNewStats(userStats);
+    setUserStats(newStats);
+    await StatsService.saveStats(newStats, user?.uid);
+  };
 
   // --- Actions ---
 
@@ -87,10 +98,8 @@ export const VocabProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       createdAt: Date.now()
     };
     
-    // Optimistic
     setCollections(prev => [newCol, ...prev]);
     setActiveCollectionId(newCol.id);
-    
     await VocabRepository.createCollection(newCol, user?.uid);
   };
 
@@ -105,13 +114,14 @@ export const VocabProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await VocabRepository.deleteCollection(id, user?.uid);
   };
 
-  const addEntry = async (slovak: string, english: string) => {
+  const addEntry = async (slovak: string, english: string, sentence?: string) => {
     if (!activeCollectionId) return;
 
     const newEntry: VocabEntry = {
       id: crypto.randomUUID(),
       slovak,
       english,
+      sentence: sentence || '',
       status: VocabStatus.NEW,
       correctCount: 0,
       wrongCount: 0,
@@ -120,6 +130,7 @@ export const VocabProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setEntries(prev => [...prev, newEntry]);
     await VocabRepository.addEntry(activeCollectionId, newEntry, user?.uid);
+    await logActivity(); // Track activity
   };
 
   const updateEntry = async (entry: VocabEntry) => {
@@ -144,6 +155,11 @@ export const VocabProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (entry) {
       const updated = { ...entry, isRevealed: !entry.isRevealed };
       await updateEntry(updated);
+      
+      // Log activity only if revealing (learning action)
+      if (!entry.isRevealed) {
+        await logActivity();
+      }
     }
   };
 
@@ -173,6 +189,7 @@ export const VocabProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         lastReviewed: Date.now(),
       };
       await updateEntry(updated);
+      await logActivity(); // Track activity
     }
   };
 
@@ -184,6 +201,7 @@ export const VocabProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       activeCollection,
       entries, 
       isLoading: isLoading || authLoading, 
+      userStats,
       createCollection,
       setActiveCollectionId,
       deleteCollection,

@@ -1,9 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Trash2, Edit2, ArrowRight, AlertCircle, Save, BookOpen, Search } from 'lucide-react';
+import { Plus, Trash2, Edit2, ArrowRight, AlertCircle, Save, BookOpen, Search, Sparkles, Loader2 } from 'lucide-react';
 import { useVocab } from '../context/VocabContext';
 import { VocabStatus, VocabEntry } from '../types';
 import { SwipeableItem } from '../components/UI/SwipeableItem';
 import { SearchBar } from '../components/UI/SearchBar';
+import { AIService } from '../services/AIService';
+import { SpeakerButton } from '../components/UI/SpeakerButton';
 
 export const NewWordsScreen: React.FC = () => {
   const { addEntry, updateEntry, deleteEntry, getEntriesByStatus, entries } = useVocab();
@@ -15,8 +17,12 @@ export const NewWordsScreen: React.FC = () => {
   // Add Form State
   const [slovakInput, setSlovakInput] = useState('');
   const [englishInput, setEnglishInput] = useState('');
+  const [sentenceInput, setSentenceInput] = useState('');
   const [formError, setFormError] = useState('');
   const slovakInputRef = useRef<HTMLInputElement>(null);
+
+  // AI State
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Search State
   const [searchQuery, setSearchQuery] = useState('');
@@ -25,6 +31,7 @@ export const NewWordsScreen: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editSlovak, setEditSlovak] = useState('');
   const [editEnglish, setEditEnglish] = useState('');
+  const [editSentence, setEditSentence] = useState('');
 
   // General Error/Success Message
   const [feedbackMsg, setFeedbackMsg] = useState<{type: 'error' | 'success', text: string} | null>(null);
@@ -37,6 +44,24 @@ export const NewWordsScreen: React.FC = () => {
     word.english.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleAIAutoFill = async () => {
+    if (!slovakInput.trim()) {
+      setFormError('Najskôr zadajte slovenské slovo.');
+      return;
+    }
+    setFormError('');
+    setIsGenerating(true);
+    try {
+      const result = await AIService.generateTranslation(slovakInput.trim());
+      setEnglishInput(result.english);
+      setSentenceInput(result.sentence);
+    } catch (e) {
+      setFormError('Nepodarilo sa vygenerovať preklad. Skontrolujte pripojenie.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
@@ -44,9 +69,10 @@ export const NewWordsScreen: React.FC = () => {
 
     const slovak = slovakInput.trim();
     const english = englishInput.trim();
+    const sentence = sentenceInput.trim();
 
     if (!slovak || !english) {
-      setFormError('Vyplňte obe políčka.');
+      setFormError('Vyplňte aspoň slovíčko a preklad.');
       return;
     }
 
@@ -60,9 +86,10 @@ export const NewWordsScreen: React.FC = () => {
       return;
     }
 
-    await addEntry(slovak, english);
+    await addEntry(slovak, english, sentence);
     setSlovakInput('');
     setEnglishInput('');
+    setSentenceInput('');
     
     // Focus back on first input
     setTimeout(() => {
@@ -96,19 +123,21 @@ export const NewWordsScreen: React.FC = () => {
     setEditingId(word.id);
     setEditSlovak(word.slovak);
     setEditEnglish(word.english);
+    setEditSentence(word.sentence || '');
   };
 
   const cancelEditing = () => {
     setEditingId(null);
     setEditSlovak('');
     setEditEnglish('');
+    setEditSentence('');
   };
 
   const saveEdit = async () => {
     if (!editingId) return;
     
     if (!editSlovak.trim() || !editEnglish.trim()) {
-      alert('Vyplňte obe políčka.');
+      alert('Vyplňte povinné políčka.');
       return;
     }
 
@@ -119,6 +148,7 @@ export const NewWordsScreen: React.FC = () => {
         ...originalWord,
         slovak: editSlovak.trim(),
         english: editEnglish.trim(),
+        sentence: editSentence.trim()
       });
     }
     cancelEditing();
@@ -138,16 +168,32 @@ export const NewWordsScreen: React.FC = () => {
       <div className="p-4 bg-neutral-950 z-10 space-y-3">
         <form onSubmit={handleAdd} className="flex flex-col space-y-3">
           <div className="flex space-x-2">
-            <div className="flex-1">
+            {/* Slovak Input with Magic Button */}
+            <div className="flex-1 relative">
               <input
                 ref={slovakInputRef}
                 type="text"
                 placeholder="Originál"
-                className="w-full px-3 py-2.5 bg-neutral-900 border border-neutral-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-sm text-white placeholder-gray-500 transition-all"
+                className="w-full pl-3 pr-10 py-2.5 bg-neutral-900 border border-neutral-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-sm text-white placeholder-gray-500 transition-all"
                 value={slovakInput}
                 onChange={(e) => setSlovakInput(e.target.value)}
               />
+              <button
+                type="button"
+                onClick={handleAIAutoFill}
+                disabled={isGenerating || !slovakInput.trim()}
+                className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 text-purple-400 hover:text-purple-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-purple-900/20"
+                title="AI Doplnenie"
+              >
+                {isGenerating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+              </button>
             </div>
+            
+            {/* English Input */}
             <div className="flex-1">
               <input
                 type="text"
@@ -158,12 +204,23 @@ export const NewWordsScreen: React.FC = () => {
               />
             </div>
           </div>
+
+          {/* Sentence Input (Optional) */}
+          <input
+             type="text"
+             placeholder="Vzorová veta (voliteľné)"
+             className="w-full px-3 py-2.5 bg-neutral-900 border border-neutral-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-sm text-white placeholder-gray-500 transition-all"
+             value={sentenceInput}
+             onChange={(e) => setSentenceInput(e.target.value)}
+           />
+
           {formError && (
             <div className="text-red-500 text-xs flex items-center px-1">
               <AlertCircle className="w-3 h-3 mr-1" />
               {formError}
             </div>
           )}
+          
           <button
             type="submit"
             className="w-full bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white font-bold py-3 rounded-xl flex items-center justify-center space-x-2 transition-all shadow-lg shadow-red-900/20 text-sm"
@@ -192,7 +249,7 @@ export const NewWordsScreen: React.FC = () => {
             </div>
             <h2 className="text-lg font-bold text-gray-300 mb-1">Zatiaľ žiadne nové slovíčka</h2>
             <p className="max-w-xs text-xs text-gray-500">
-              Pridajte si slovíčka pomocou formulára vyššie. Odtiaľto ich neskôr presuniete do učenia.
+              Skúste použiť <Sparkles className="w-3 h-3 inline text-purple-400" /> AI tlačidlo pre rýchle pridanie slovíčok aj s vetami.
             </p>
           </div>
         ) : filteredWords.length === 0 ? (
@@ -212,21 +269,30 @@ export const NewWordsScreen: React.FC = () => {
             >
               <div className="p-3 rounded-xl border border-neutral-800/50 shadow-sm flex items-center justify-between group hover:border-neutral-700 transition-colors bg-neutral-900/80 backdrop-blur-sm">
                 
-                {/* Side-by-Side Layout Container */}
-                <div className="flex-1 flex items-center min-w-0">
-                  {/* Left Column: Originál */}
-                  <div className="w-[45%] shrink-0 pr-3 border-r border-neutral-800">
-                    <div className="font-semibold text-gray-100 truncate text-base">{word.slovak}</div>
+                {/* Content Container */}
+                <div className="flex-1 min-w-0 flex flex-col space-y-1">
+                  {/* Top Row: Words */}
+                  <div className="flex items-center">
+                    <div className="w-[45%] shrink-0 pr-3 border-r border-neutral-800">
+                      <div className="font-semibold text-gray-100 truncate text-base">{word.slovak}</div>
+                    </div>
+                    <div className="flex-1 min-w-0 pl-3 flex items-center">
+                      <div className="text-gray-400 text-sm truncate flex-1">{word.english}</div>
+                      <SpeakerButton text={word.english} size={16} className="text-gray-500 hover:text-white" />
+                    </div>
                   </div>
-
-                  {/* Right Column: Preklad */}
-                  <div className="flex-1 min-w-0 pl-3">
-                    <div className="text-gray-400 text-sm truncate">{word.english}</div>
-                  </div>
+                  
+                  {/* Bottom Row: Sentence (if exists) */}
+                  {word.sentence && (
+                    <div className="text-[10px] text-gray-500 italic truncate pt-1 border-t border-neutral-800/50 mt-1 flex items-center justify-between">
+                       <span>"{word.sentence}"</span>
+                       <SpeakerButton text={word.sentence} size={14} className="text-gray-600 hover:text-white p-0.5 ml-1" />
+                    </div>
+                  )}
                 </div>
                 
                 {/* Actions */}
-                <div className="flex items-center space-x-2 pl-2 ml-2 border-l border-neutral-800">
+                <div className="flex items-center space-x-2 pl-2 ml-2 border-l border-neutral-800 shrink-0">
                   <button 
                     type="button"
                     onClick={(e) => startEditing(e, word)}
@@ -269,6 +335,15 @@ export const NewWordsScreen: React.FC = () => {
                   className="w-full px-3 py-2.5 bg-neutral-950 border border-neutral-800 rounded-xl focus:ring-1 focus:ring-red-500 focus:outline-none text-white text-sm transition-all"
                   value={editEnglish}
                   onChange={(e) => setEditEnglish(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Vzorová veta</label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2.5 bg-neutral-950 border border-neutral-800 rounded-xl focus:ring-1 focus:ring-red-500 focus:outline-none text-white text-sm transition-all"
+                  value={editSentence}
+                  onChange={(e) => setEditSentence(e.target.value)}
                 />
               </div>
             </div>

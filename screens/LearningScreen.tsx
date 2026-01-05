@@ -5,6 +5,7 @@ import { VocabStatus, VocabEntry } from '../types';
 import { TestMode } from '../components/TestMode';
 import { SwipeableItem } from '../components/UI/SwipeableItem';
 import { SearchBar } from '../components/UI/SearchBar';
+import { SpeakerButton } from '../components/UI/SpeakerButton';
 
 export const LearningScreen: React.FC = () => {
   const { 
@@ -137,9 +138,12 @@ export const LearningScreen: React.FC = () => {
                     {/* English Word (Middle) */}
                     <div className="flex-1 min-w-0 mr-2">
                       {word.isRevealed ? (
-                        <span className="text-red-500 font-bold text-base truncate animate-in fade-in duration-300 block">
-                          {word.english}
-                        </span>
+                        <div className="flex items-center justify-between animate-in fade-in duration-300">
+                          <span className="text-red-500 font-bold text-base truncate block">
+                            {word.english}
+                          </span>
+                          <SpeakerButton text={word.english} size={18} className="text-red-500/80 hover:text-red-500 ml-2 shrink-0" />
+                        </div>
                       ) : (
                         <div className="flex items-center text-neutral-700 w-full select-none">
                           <div className="flex-1 filter blur-sm truncate opacity-50 block">
@@ -151,7 +155,7 @@ export const LearningScreen: React.FC = () => {
                     </div>
 
                     {/* Stats Column (Right Edge) */}
-                    <div className="flex flex-col space-y-1 shrink-0">
+                    <div className="flex flex-col space-y-1 shrink-0 ml-1">
                       <span className="text-[9px] font-bold px-1.5 py-0.5 bg-green-900/30 text-green-500 rounded-md border border-green-900/30 text-center min-w-[24px]">
                         {word.correctCount}
                       </span>

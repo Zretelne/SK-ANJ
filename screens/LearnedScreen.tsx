@@ -5,6 +5,7 @@ import { VocabStatus, VocabEntry } from '../types';
 import { TestMode } from '../components/TestMode';
 import { SwipeableItem } from '../components/UI/SwipeableItem';
 import { SearchBar } from '../components/UI/SearchBar';
+import { SpeakerButton } from '../components/UI/SpeakerButton';
 
 export const LearnedScreen: React.FC = () => {
   const { getEntriesByStatus, deleteEntry, updateEntry, recordTestResult } = useVocab();
@@ -123,8 +124,9 @@ export const LearnedScreen: React.FC = () => {
                     </div>
 
                     {/* Right Column: English */}
-                    <div className="flex-1 min-w-0 pl-3">
-                         <p className="text-gray-600 truncate text-sm">{word.english}</p>
+                    <div className="flex-1 min-w-0 pl-3 flex items-center justify-between">
+                         <p className="text-gray-600 truncate text-sm flex-1">{word.english}</p>
+                         <SpeakerButton text={word.english} size={16} className="text-gray-600 hover:text-white ml-2" />
                     </div>
                   </div>
 
