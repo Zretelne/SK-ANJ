@@ -64,13 +64,13 @@ export const LearnedScreen: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-neutral-950">
       {/* Header Actions */}
-      <div className="p-5 z-10 space-y-4">
+      <div className="p-4 z-10 space-y-3">
         <button
           onClick={handleStartTest}
           disabled={words.length === 0}
-          className="w-full bg-red-600 disabled:bg-neutral-800 disabled:text-neutral-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-red-900/20 active:scale-[0.98] transition-all flex items-center justify-center space-x-2"
+          className="w-full bg-red-600 disabled:bg-neutral-800 disabled:text-neutral-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-red-900/20 active:scale-[0.98] transition-all flex items-center justify-center space-x-2 text-sm"
         >
-          <Play className="w-5 h-5 fill-current" />
+          <Play className="w-4 h-4 fill-current" />
           <span>
             {words.length > 0 
               ? `Otestovať ${Math.min(10, words.length)} náhodných` 
@@ -87,21 +87,21 @@ export const LearnedScreen: React.FC = () => {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-5">
+      <div className="flex-1 overflow-y-auto px-4 pb-4">
         {words.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center text-gray-600">
-            <div className="w-20 h-20 bg-neutral-900 rounded-full flex items-center justify-center mb-6 shadow-inner">
-              <CheckCircle className="w-8 h-8 text-green-700/50" />
+            <div className="w-16 h-16 bg-neutral-900 rounded-full flex items-center justify-center mb-4 shadow-inner">
+              <CheckCircle className="w-6 h-6 text-green-700/50" />
             </div>
-            <h2 className="text-xl font-bold text-gray-300 mb-2">Zatiaľ žiadne naučené slová</h2>
-            <p className="max-w-xs text-gray-500 text-sm">
+            <h2 className="text-lg font-bold text-gray-300 mb-1">Zatiaľ žiadne naučené slová</h2>
+            <p className="max-w-xs text-gray-500 text-xs">
               Pokračujte v tréningu, výsledky sa dostavia!
             </p>
           </div>
         ) : filteredWords.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center text-gray-600">
-             <Search className="w-8 h-8 mb-2 opacity-50" />
-             <p className="text-sm">Žiadne výsledky pre "{searchQuery}"</p>
+             <Search className="w-6 h-6 mb-2 opacity-50" />
+             <p className="text-xs">Žiadne výsledky pre "{searchQuery}"</p>
           </div>
         ) : (
           <div className="pb-20">
@@ -111,19 +111,28 @@ export const LearnedScreen: React.FC = () => {
                 onSwipeLeft={() => handleDeleteSwipe(word.id)}
                 onSwipeRight={() => handleMoveBackToLearning(word)}
                 swipeRightColor="bg-blue-600"
-                rightIcon={<BookOpen className="text-white w-8 h-8" />}
-                leftIcon={<Trash2 className="text-white w-8 h-8" />}
+                rightIcon={<BookOpen className="text-white w-6 h-6" />}
+                leftIcon={<Trash2 className="text-white w-6 h-6" />}
               >
-                <div className="bg-neutral-900 border border-neutral-800/50 p-4 rounded-2xl shadow-sm flex justify-between items-center group hover:border-neutral-700 transition-colors">
-                  <div className="flex-1 min-w-0 pr-3 opacity-60 group-hover:opacity-100 transition-opacity">
-                    <p className="font-bold text-gray-300 line-through decoration-red-600/50 truncate decoration-2">{word.slovak}</p>
-                    <p className="text-sm text-gray-600 truncate">{word.english}</p>
+                <div className="bg-neutral-900 border border-neutral-800/50 p-3 rounded-xl shadow-sm flex items-center group hover:border-neutral-700 transition-colors">
+                  
+                  <div className="flex-1 flex items-center min-w-0">
+                    {/* Left Column: Slovak */}
+                    <div className="w-[45%] shrink-0 pr-3 border-r border-neutral-800">
+                        <p className="font-semibold text-gray-300 line-through decoration-red-600/50 truncate decoration-2 text-base">{word.slovak}</p>
+                    </div>
+
+                    {/* Right Column: English */}
+                    <div className="flex-1 min-w-0 pl-3">
+                         <p className="text-gray-600 truncate text-sm">{word.english}</p>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <div className="w-px h-6 bg-neutral-800"></div>
-                    <BookOpen className="w-4 h-4 text-gray-700" />
+
+                  {/* Icon Right */}
+                  <div className="flex items-center space-x-2 ml-2 pl-2 border-l border-neutral-800">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
                   </div>
+
                 </div>
               </SwipeableItem>
             ))}
@@ -134,13 +143,13 @@ export const LearnedScreen: React.FC = () => {
       {/* Confirmation Modal */}
       {deletingId && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-neutral-900 rounded-3xl w-full max-w-sm p-6 shadow-2xl border border-neutral-800 animate-in zoom-in-95 duration-200">
-            <div className="flex flex-col items-center text-center mb-6">
-              <div className="w-16 h-16 bg-red-900/20 rounded-full flex items-center justify-center mb-4">
-                <AlertTriangle className="w-8 h-8 text-red-600" />
+          <div className="bg-neutral-900 rounded-2xl w-full max-w-sm p-5 shadow-2xl border border-neutral-800 animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center mb-5">
+              <div className="w-12 h-12 bg-red-900/20 rounded-full flex items-center justify-center mb-3">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
               </div>
-              <h3 className="text-xl font-bold text-white">Odstrániť slovíčko?</h3>
-              <p className="text-gray-500 text-sm mt-2">
+              <h3 className="text-lg font-bold text-white">Odstrániť slovíčko?</h3>
+              <p className="text-gray-500 text-xs mt-1">
                 Naozaj chcete natrvalo odstrániť toto naučené slovíčko? Táto akcia sa nedá vrátiť späť.
               </p>
             </div>
@@ -148,13 +157,13 @@ export const LearnedScreen: React.FC = () => {
             <div className="flex space-x-3">
               <button
                 onClick={cancelDelete}
-                className="flex-1 py-3.5 bg-neutral-800 text-gray-300 font-bold rounded-2xl hover:bg-neutral-700 transition-colors"
+                className="flex-1 py-3 bg-neutral-800 text-gray-300 font-bold text-sm rounded-xl hover:bg-neutral-700 transition-colors"
               >
                 Zrušiť
               </button>
               <button
                 onClick={confirmDelete}
-                className="flex-1 py-3.5 bg-red-600 text-white font-bold rounded-2xl hover:bg-red-700 transition-colors"
+                className="flex-1 py-3 bg-red-600 text-white font-bold text-sm rounded-xl hover:bg-red-700 transition-colors"
               >
                 Odstrániť
               </button>

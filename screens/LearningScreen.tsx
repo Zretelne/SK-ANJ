@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookOpen, Eye, EyeOff, Play, CheckCircle, RefreshCcw, RotateCcw, Search } from 'lucide-react';
+import { BookOpen, Play, CheckCircle, RefreshCcw, RotateCcw, Search, Eye, EyeOff } from 'lucide-react';
 import { useVocab } from '../context/VocabContext';
 import { VocabStatus, VocabEntry } from '../types';
 import { TestMode } from '../components/TestMode';
@@ -62,14 +62,14 @@ export const LearningScreen: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-neutral-950">
       {/* Header Actions */}
-      <div className="p-5 space-y-4 z-10">
+      <div className="p-4 space-y-3 z-10">
         <div className="flex space-x-3">
           <button
             onClick={() => setIsTesting(true)}
             disabled={words.length === 0}
-            className="flex-1 bg-red-600 disabled:bg-neutral-800 disabled:text-neutral-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-red-900/20 active:scale-[0.98] transition-all flex items-center justify-center space-x-2"
+            className="flex-1 bg-red-600 disabled:bg-neutral-800 disabled:text-neutral-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-red-900/20 active:scale-[0.98] transition-all flex items-center justify-center space-x-2 text-sm"
           >
-            <Play className="w-5 h-5 fill-current" />
+            <Play className="w-4 h-4 fill-current" />
             <span>Otestovať všetky</span>
           </button>
         </div>
@@ -78,7 +78,7 @@ export const LearningScreen: React.FC = () => {
           <>
             <button
               onClick={() => resetAllRevealed()}
-              className="w-full py-2 text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-red-500 transition-colors flex items-center justify-center space-x-1.5"
+              className="w-full py-1 text-[10px] font-medium uppercase tracking-wider text-gray-500 hover:text-red-500 transition-colors flex items-center justify-center space-x-1"
             >
               <RefreshCcw className="w-3 h-3" />
               <span>Resetovať odhalené</span>
@@ -94,21 +94,21 @@ export const LearningScreen: React.FC = () => {
       </div>
 
       {/* Main List */}
-      <div className="flex-1 overflow-y-auto px-5 pb-5">
+      <div className="flex-1 overflow-y-auto px-4 pb-4">
         {words.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center text-gray-600">
-            <div className="w-20 h-20 bg-neutral-900 rounded-full flex items-center justify-center mb-6 shadow-inner">
-              <BookOpen className="w-8 h-8 text-neutral-700" />
+            <div className="w-16 h-16 bg-neutral-900 rounded-full flex items-center justify-center mb-4 shadow-inner">
+              <BookOpen className="w-6 h-6 text-neutral-700" />
             </div>
-            <h2 className="text-xl font-bold text-gray-300 mb-2">Momentálne sa nič neučíte</h2>
-            <p className="max-w-xs text-sm text-gray-500">
+            <h2 className="text-lg font-bold text-gray-300 mb-1">Momentálne sa nič neučíte</h2>
+            <p className="max-w-xs text-xs text-gray-500">
               Presuňte slovíčka zo zoznamu "Nové" a začnite sa učiť.
             </p>
           </div>
         ) : filteredWords.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center text-gray-600">
-             <Search className="w-8 h-8 mb-2 opacity-50" />
-             <p className="text-sm">Žiadne výsledky pre "{searchQuery}"</p>
+             <Search className="w-6 h-6 mb-2 opacity-50" />
+             <p className="text-xs">Žiadne výsledky pre "{searchQuery}"</p>
           </div>
         ) : (
           filteredWords.map((word) => (
@@ -117,45 +117,51 @@ export const LearningScreen: React.FC = () => {
               onSwipeLeft={() => handleMoveToNew(word)}
               onSwipeRight={() => handleMoveToLearned(word)}
               swipeLeftColor="bg-yellow-600"
-              rightIcon={<CheckCircle className="text-white w-8 h-8" />}
-              leftIcon={<RotateCcw className="text-white w-8 h-8" />}
+              rightIcon={<CheckCircle className="text-white w-6 h-6" />}
+              leftIcon={<RotateCcw className="text-white w-6 h-6" />}
             >
               <div 
                 onClick={() => handleToggle(word)}
-                className="bg-neutral-900 border border-neutral-800/50 rounded-3xl shadow-sm overflow-hidden active:bg-neutral-800 transition-colors cursor-pointer group"
+                className="bg-neutral-900 border border-neutral-800/50 rounded-xl shadow-sm overflow-hidden active:bg-neutral-800 transition-colors cursor-pointer group"
               >
-                <div className="p-5 flex flex-col space-y-3">
-                  {/* Top Row: Word and Stats */}
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="text-xl font-bold text-white block tracking-tight">{word.slovak}</span>
-                      <div className="flex items-center space-x-2 mt-2">
-                        <span className="text-[10px] font-bold px-2 py-0.5 bg-green-900/30 text-green-500 rounded-full border border-green-900/30">
-                          {word.correctCount}
-                        </span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 bg-red-900/30 text-red-500 rounded-full border border-red-900/30">
-                          {word.wrongCount}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-neutral-600 group-hover:text-red-500 transition-colors">
-                      {word.isRevealed ? (
-                        <EyeOff className="w-6 h-6" />
-                      ) : (
-                        <Eye className="w-6 h-6" />
-                      )}
-                    </div>
+                <div className="p-3 flex items-center min-h-[4rem]">
+                  
+                  {/* Left Column: Slovak */}
+                  <div className="w-[45%] shrink-0 pr-3 border-r border-neutral-800 flex flex-col justify-center">
+                    <span className="text-base font-bold text-white block truncate">{word.slovak}</span>
                   </div>
 
-                  {/* Bottom Row: English Reveal area */}
-                  <div className={`transition-all duration-300 ease-in-out overflow-hidden ${word.isRevealed ? 'max-h-24 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
-                    <div className="pt-4 border-t border-neutral-800 flex justify-between items-center">
-                      <span className="text-red-500 font-bold text-xl">{word.english}</span>
-                      <div className="text-xs text-gray-600 font-medium uppercase tracking-wider">
-                        Swipe doprava pre naučené →
-                      </div>
+                  {/* Right Column Container: English + Stats */}
+                  <div className="flex-1 pl-3 flex items-center justify-between min-w-0">
+                    
+                    {/* English Word (Middle) */}
+                    <div className="flex-1 min-w-0 mr-2">
+                      {word.isRevealed ? (
+                        <span className="text-red-500 font-bold text-base truncate animate-in fade-in duration-300 block">
+                          {word.english}
+                        </span>
+                      ) : (
+                        <div className="flex items-center text-neutral-700 w-full select-none">
+                          <div className="flex-1 filter blur-sm truncate opacity-50 block">
+                             {word.english}
+                          </div>
+                          <Eye className="w-4 h-4 ml-2 opacity-50 flex-shrink-0" />
+                        </div>
+                      )}
                     </div>
+
+                    {/* Stats Column (Right Edge) */}
+                    <div className="flex flex-col space-y-1 shrink-0">
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 bg-green-900/30 text-green-500 rounded-md border border-green-900/30 text-center min-w-[24px]">
+                        {word.correctCount}
+                      </span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 bg-red-900/30 text-red-500 rounded-md border border-red-900/30 text-center min-w-[24px]">
+                        {word.wrongCount}
+                      </span>
+                    </div>
+
                   </div>
+
                 </div>
               </div>
             </SwipeableItem>
