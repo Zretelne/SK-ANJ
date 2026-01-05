@@ -17,7 +17,7 @@ export class AIService {
 
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-1.5-flash',
         contents: `Translate the Slovak word "${slovakWord}" to English and provide a simple, short example sentence in English using that word. The sentence should help understand the context.`,
         config: {
           responseMimeType: "application/json",
