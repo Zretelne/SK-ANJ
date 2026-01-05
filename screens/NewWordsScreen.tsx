@@ -142,7 +142,7 @@ export const NewWordsScreen: React.FC = () => {
               <input
                 ref={slovakInputRef}
                 type="text"
-                placeholder="Slovensky"
+                placeholder="Originál"
                 className="w-full px-3 py-2.5 bg-neutral-900 border border-neutral-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-sm text-white placeholder-gray-500 transition-all"
                 value={slovakInput}
                 onChange={(e) => setSlovakInput(e.target.value)}
@@ -151,7 +151,7 @@ export const NewWordsScreen: React.FC = () => {
             <div className="flex-1">
               <input
                 type="text"
-                placeholder="Anglicky"
+                placeholder="Preklad"
                 className="w-full px-3 py-2.5 bg-neutral-900 border border-neutral-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 text-sm text-white placeholder-gray-500 transition-all"
                 value={englishInput}
                 onChange={(e) => setEnglishInput(e.target.value)}
@@ -186,8 +186,14 @@ export const NewWordsScreen: React.FC = () => {
       {/* List */}
       <div className="flex-1 overflow-y-auto px-4 pb-4">
         {newWords.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-600">
-            <p className="text-xs uppercase tracking-widest font-medium">Zoznam je prázdny</p>
+          <div className="flex flex-col items-center justify-center h-64 text-center text-gray-600">
+            <div className="w-16 h-16 bg-neutral-900 rounded-full flex items-center justify-center mb-4 shadow-inner">
+              <Plus className="w-8 h-8 text-neutral-700" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-300 mb-1">Zatiaľ žiadne nové slovíčka</h2>
+            <p className="max-w-xs text-xs text-gray-500">
+              Pridajte si slovíčka pomocou formulára vyššie. Odtiaľto ich neskôr presuniete do učenia.
+            </p>
           </div>
         ) : filteredWords.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-600">
@@ -208,12 +214,12 @@ export const NewWordsScreen: React.FC = () => {
                 
                 {/* Side-by-Side Layout Container */}
                 <div className="flex-1 flex items-center min-w-0">
-                  {/* Left Column: Slovak */}
+                  {/* Left Column: Originál */}
                   <div className="w-[45%] shrink-0 pr-3 border-r border-neutral-800">
                     <div className="font-semibold text-gray-100 truncate text-base">{word.slovak}</div>
                   </div>
 
-                  {/* Right Column: English */}
+                  {/* Right Column: Preklad */}
                   <div className="flex-1 min-w-0 pl-3">
                     <div className="text-gray-400 text-sm truncate">{word.english}</div>
                   </div>
@@ -248,7 +254,7 @@ export const NewWordsScreen: React.FC = () => {
             
             <div className="space-y-3">
               <div>
-                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Slovensky</label>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Originál</label>
                 <input
                   type="text"
                   className="w-full px-3 py-2.5 bg-neutral-950 border border-neutral-800 rounded-xl focus:ring-1 focus:ring-red-500 focus:outline-none text-white text-sm transition-all"
@@ -257,7 +263,7 @@ export const NewWordsScreen: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Anglicky</label>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Preklad</label>
                 <input
                   type="text"
                   className="w-full px-3 py-2.5 bg-neutral-950 border border-neutral-800 rounded-xl focus:ring-1 focus:ring-red-500 focus:outline-none text-white text-sm transition-all"

@@ -8,12 +8,14 @@ import { LearnedScreen } from './screens/LearnedScreen';
 import { VocabProvider } from './context/VocabContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginScreen } from './screens/LoginScreen';
+import { CollectionsModal } from './components/Collections/CollectionsModal';
 import { LogOut, User } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<AppTab>(AppTab.NEW);
   const [showLogin, setShowLogin] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showCollections, setShowCollections] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   
   const { user, signOut } = useAuth();
@@ -91,7 +93,11 @@ const MainLayout: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-neutral-950">
       {/* Top App Bar */}
-      <AppBar title={getTitle(currentTab)} onProfileClick={handleProfileClick} />
+      <AppBar 
+        title={getTitle(currentTab)} 
+        onProfileClick={handleProfileClick} 
+        onCollectionClick={() => setShowCollections(true)}
+      />
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto overflow-x-hidden relative w-full max-w-md mx-auto bg-neutral-950 min-h-0">
@@ -105,9 +111,13 @@ const MainLayout: React.FC = () => {
         </div>
       )}
 
-      {/* Login Overlay */}
+      {/* Overlays */}
       {showLogin && (
         <LoginScreen onClose={() => setShowLogin(false)} />
+      )}
+
+      {showCollections && (
+        <CollectionsModal onClose={() => setShowCollections(false)} />
       )}
 
       {/* Profile Menu Overlay (Simple) */}

@@ -119,7 +119,7 @@ export const TestMode: React.FC<TestModeProps> = ({ words, onComplete, onRecordR
         
         <div className="w-full bg-neutral-900 rounded-[2rem] shadow-sm border border-neutral-800 p-10 text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-3">{currentWord.slovak}</h1>
-          <p className="text-gray-500 text-sm font-medium">Preložte do angličtiny</p>
+          <p className="text-gray-500 text-sm font-medium">Zadajte preklad</p>
         </div>
 
         <form onSubmit={handleSubmit} className="w-full space-y-4">

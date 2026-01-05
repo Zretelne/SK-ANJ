@@ -12,10 +12,16 @@ export enum VocabStatus {
   LEARNED = 'learned'
 }
 
+export interface VocabCollection {
+  id: string;
+  name: string; // Napr. "Angličtina", "Nemčina - frázy"
+  createdAt: number;
+}
+
 export interface VocabEntry {
   id: string;
-  slovak: string;
-  english: string;
+  slovak: string; // Toto chápeme ako "Front side" (Zdrojový jazyk)
+  english: string; // Toto chápeme ako "Back side" (Cieľový jazyk)
   status: VocabStatus;
   correctCount: number;
   wrongCount: number;

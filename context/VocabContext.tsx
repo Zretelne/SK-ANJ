@@ -1,11 +1,18 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { VocabEntry, VocabStatus } from '../types';
+import { VocabEntry, VocabStatus, VocabCollection } from '../types';
 import { VocabRepository } from '../services/VocabRepository';
 import { useAuth } from './AuthContext';
 
 interface VocabContextType {
+  collections: VocabCollection[];
+  activeCollection: VocabCollection | null;
   entries: VocabEntry[];
   isLoading: boolean;
+  
+  createCollection: (name: string) => Promise<void>;
+  setActiveCollectionId: (id: string) => void;
+  deleteCollection: (id: string) => Promise<void>;
+
   addEntry: (slovak: string, english: string) => Promise<void>;
   updateEntry: (entry: VocabEntry) => Promise<void>;
   deleteEntry: (id: string) => Promise<void>;
@@ -19,26 +26,88 @@ const VocabContext = createContext<VocabContextType | undefined>(undefined);
 
 export const VocabProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading: authLoading } = useAuth();
+  
+  const [collections, setCollections] = useState<VocabCollection[]>([]);
+  const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
   const [entries, setEntries] = useState<VocabEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load entries whenever user changes (Login/Logout)
-  const loadEntries = async () => {
-    setIsLoading(true);
-    // If auth is still loading, wait.
-    if (authLoading) return;
-
-    const userId = user?.uid;
-    const data = await VocabRepository.getAllEntries(userId);
-    setEntries(data);
-    setIsLoading(false);
-  };
-
+  // 1. Load Collections on Init/User Change
   useEffect(() => {
-    loadEntries();
+    const initCollections = async () => {
+      if (authLoading) return;
+      setIsLoading(true);
+      
+      const cols = await VocabRepository.getCollections(user?.uid);
+      
+      if (cols.length > 0) {
+        setCollections(cols);
+        // Default to first if none selected
+        if (!activeCollectionId || !cols.find(c => c.id === activeCollectionId)) {
+          setActiveCollectionId(cols[0].id);
+        }
+      } else {
+        // Create Default Collection if none exist
+        const defaultCol: VocabCollection = {
+            id: crypto.randomUUID(),
+            name: 'SK - ANJ',
+            createdAt: Date.now()
+        };
+        await VocabRepository.createCollection(defaultCol, user?.uid);
+        setCollections([defaultCol]);
+        setActiveCollectionId(defaultCol.id);
+      }
+      setIsLoading(false);
+    };
+
+    initCollections();
   }, [user, authLoading]);
 
+  // 2. Load Entries when Active Collection Changes
+  useEffect(() => {
+    const loadEntries = async () => {
+      if (!activeCollectionId) return;
+      
+      // Don't set global loading here to prevent full screen flicker, 
+      // maybe just local list loading if needed, but for now fast enough.
+      const data = await VocabRepository.getAllEntries(activeCollectionId, user?.uid);
+      setEntries(data);
+    };
+
+    loadEntries();
+  }, [activeCollectionId, user]);
+
+
+  // --- Actions ---
+
+  const createCollection = async (name: string) => {
+    const newCol: VocabCollection = {
+      id: crypto.randomUUID(),
+      name,
+      createdAt: Date.now()
+    };
+    
+    // Optimistic
+    setCollections(prev => [newCol, ...prev]);
+    setActiveCollectionId(newCol.id);
+    
+    await VocabRepository.createCollection(newCol, user?.uid);
+  };
+
+  const deleteCollection = async (id: string) => {
+    const newCollections = collections.filter(c => c.id !== id);
+    setCollections(newCollections);
+    
+    if (activeCollectionId === id) {
+        setActiveCollectionId(newCollections.length > 0 ? newCollections[0].id : null);
+    }
+    
+    await VocabRepository.deleteCollection(id, user?.uid);
+  };
+
   const addEntry = async (slovak: string, english: string) => {
+    if (!activeCollectionId) return;
+
     const newEntry: VocabEntry = {
       id: crypto.randomUUID(),
       slovak,
@@ -48,20 +117,21 @@ export const VocabProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       wrongCount: 0,
       isRevealed: false,
     };
-    await VocabRepository.addEntry(newEntry, user?.uid);
-    // Optimistic update or reload
-    await loadEntries(); 
+
+    setEntries(prev => [...prev, newEntry]);
+    await VocabRepository.addEntry(activeCollectionId, newEntry, user?.uid);
   };
 
   const updateEntry = async (entry: VocabEntry) => {
-    // Optimistic update for UI speed
+    if (!activeCollectionId) return;
     setEntries(prev => prev.map(e => e.id === entry.id ? entry : e));
-    await VocabRepository.updateEntry(entry, user?.uid);
+    await VocabRepository.updateEntry(activeCollectionId, entry, user?.uid);
   };
 
   const deleteEntry = async (id: string) => {
+    if (!activeCollectionId) return;
     setEntries(prev => prev.filter(e => e.id !== id));
-    await VocabRepository.deleteEntry(id, user?.uid);
+    await VocabRepository.deleteEntry(activeCollectionId, id, user?.uid);
   };
 
   const getEntriesByStatus = (status: VocabStatus) => {
@@ -69,6 +139,7 @@ export const VocabProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const toggleReveal = async (id: string) => {
+    if (!activeCollectionId) return;
     const entry = entries.find(e => e.id === id);
     if (entry) {
       const updated = { ...entry, isRevealed: !entry.isRevealed };
@@ -77,21 +148,22 @@ export const VocabProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const resetAllRevealed = async () => {
+    if (!activeCollectionId) return;
     const toUpdate = entries
       .filter(e => e.status === VocabStatus.LEARNING && e.isRevealed)
       .map(e => ({ ...e, isRevealed: false }));
 
     if (toUpdate.length > 0) {
-      // Optimistic
       setEntries(prev => prev.map(e => {
         const match = toUpdate.find(u => u.id === e.id);
         return match || e;
       }));
-      await VocabRepository.updateEntries(toUpdate, user?.uid);
+      await VocabRepository.updateEntries(activeCollectionId, toUpdate, user?.uid);
     }
   };
 
   const recordTestResult = async (id: string, isCorrect: boolean) => {
+    if (!activeCollectionId) return;
     const entry = entries.find(e => e.id === id);
     if (entry) {
       const updated = {
@@ -104,10 +176,17 @@ export const VocabProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const activeCollection = collections.find(c => c.id === activeCollectionId) || null;
+
   return (
     <VocabContext.Provider value={{ 
+      collections,
+      activeCollection,
       entries, 
       isLoading: isLoading || authLoading, 
+      createCollection,
+      setActiveCollectionId,
+      deleteCollection,
       addEntry, 
       updateEntry, 
       deleteEntry, 

@@ -1,4 +1,4 @@
-import { VocabEntry, VocabStatus } from '../types';
+import { VocabEntry, VocabStatus, VocabCollection } from '../types';
 import { db } from '../lib/firebase';
 import { 
   collection, 
@@ -8,94 +8,109 @@ import {
   deleteDoc, 
   writeBatch,
   query,
-  getDoc
+  orderBy
 } from 'firebase/firestore';
 
-const LOCAL_STORAGE_KEY = 'slovnik_vocab_data';
+const LS_KEY_DATA_PREFIX = 'slovnik_data_';
+const LS_KEY_COLLECTIONS = 'slovnik_collections';
 
 export class VocabRepository {
-  /**
-   * Načíta dáta.
-   * Ak je userId (prihlásený užívateľ) a máme DB spojenie, ťahá z Firebase.
-   * Inak ťahá z LocalStorage.
-   */
-  static async getAllEntries(userId?: string): Promise<VocabEntry[]> {
+  
+  // --- COLLECTIONS MANAGEMENT ---
+
+  static async getCollections(userId?: string): Promise<VocabCollection[]> {
     if (userId && db) {
       try {
-        // --- MIGRÁCIA DÁT: LocalStorage -> Firestore ---
-        // Skontrolujeme, či má užívateľ nejaké dáta v LocalStorage (z doby pred prihlásením)
-        const localData = await this.getLocalStorage(false); // false = nevytvárať seed dáta
-        
-        if (localData.length > 0) {
-          console.log('Migrating local data to Firebase account...');
-          const batch = writeBatch(db);
-          
-          localData.forEach(entry => {
-            // Použijeme ID slovíčka ako ID dokumentu
-            const ref = doc(db, 'users', userId, 'vocab', entry.id);
-            // { merge: true } zabezpečí, že neprepíšeme existujúce polia ak by tam náhodou niečo bolo
-            batch.set(ref, entry, { merge: true });
-          });
-
-          await batch.commit();
-          console.log('Migration successful. Clearing local storage.');
-          
-          // Vyčistíme lokálne úložisko, aby sa dáta neduplikovali pri odhlásení/prihlásení
-          localStorage.removeItem(LOCAL_STORAGE_KEY);
-        }
-        // ----------------------------------------------
-
-        const querySnapshot = await getDocs(collection(db, 'users', userId, 'vocab'));
-        const entries = querySnapshot.docs.map(doc => doc.data() as VocabEntry);
-        
-        return entries;
+        const q = query(collection(db, 'users', userId, 'collections'), orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => doc.data() as VocabCollection);
       } catch (e) {
-        console.error('Error fetching from Firestore', e);
+        console.error('Error fetching collections', e);
         return [];
       }
     } else {
-      return this.getLocalStorage(true); // true = ak je prázdno, vráť demo dáta
+      return this.getLocalStorageCollections();
     }
   }
 
-  static async addEntry(entry: VocabEntry, userId?: string): Promise<void> {
+  static async createCollection(col: VocabCollection, userId?: string): Promise<void> {
+    if (userId && db) {
+      await setDoc(doc(db, 'users', userId, 'collections', col.id), col);
+    } else {
+      const cols = await this.getLocalStorageCollections();
+      cols.unshift(col);
+      localStorage.setItem(LS_KEY_COLLECTIONS, JSON.stringify(cols));
+    }
+  }
+
+  static async deleteCollection(colId: string, userId?: string): Promise<void> {
+    if (userId && db) {
+      // Note: Firestore subcollections are not automatically deleted. 
+      // In a production app, we should use a Cloud Function to recursive delete.
+      // Here we just delete the metadata doc for simplicity in frontend.
+      await deleteDoc(doc(db, 'users', userId, 'collections', colId));
+    } else {
+      const cols = await this.getLocalStorageCollections();
+      const filtered = cols.filter(c => c.id !== colId);
+      localStorage.setItem(LS_KEY_COLLECTIONS, JSON.stringify(filtered));
+      localStorage.removeItem(LS_KEY_DATA_PREFIX + colId);
+    }
+  }
+
+  // --- ENTRIES MANAGEMENT ---
+
+  static async getAllEntries(collectionId: string, userId?: string): Promise<VocabEntry[]> {
     if (userId && db) {
       try {
-        await setDoc(doc(db, 'users', userId, 'vocab', entry.id), entry);
+        const querySnapshot = await getDocs(collection(db, 'users', userId, 'collections', collectionId, 'vocab'));
+        return querySnapshot.docs.map(doc => doc.data() as VocabEntry);
+      } catch (e) {
+        console.error('Error fetching entries', e);
+        return [];
+      }
+    } else {
+      return this.getLocalStorageEntries(collectionId);
+    }
+  }
+
+  static async addEntry(collectionId: string, entry: VocabEntry, userId?: string): Promise<void> {
+    if (userId && db) {
+      try {
+        await setDoc(doc(db, 'users', userId, 'collections', collectionId, 'vocab', entry.id), entry);
       } catch (e) {
         console.error('Error adding to Firestore', e);
       }
     } else {
-      const entries = await this.getLocalStorage(true);
+      const entries = await this.getLocalStorageEntries(collectionId);
       entries.push(entry);
-      await this.saveLocalStorage(entries);
+      await this.saveLocalStorageEntries(collectionId, entries);
     }
   }
 
-  static async updateEntry(updatedEntry: VocabEntry, userId?: string): Promise<void> {
+  static async updateEntry(collectionId: string, updatedEntry: VocabEntry, userId?: string): Promise<void> {
     if (userId && db) {
       try {
-        await setDoc(doc(db, 'users', userId, 'vocab', updatedEntry.id), updatedEntry, { merge: true });
+        await setDoc(doc(db, 'users', userId, 'collections', collectionId, 'vocab', updatedEntry.id), updatedEntry, { merge: true });
       } catch (e) {
         console.error('Error updating Firestore', e);
       }
     } else {
-      const entries = await this.getLocalStorage(true);
+      const entries = await this.getLocalStorageEntries(collectionId);
       const index = entries.findIndex(e => e.id === updatedEntry.id);
       if (index !== -1) {
         entries[index] = updatedEntry;
-        await this.saveLocalStorage(entries);
+        await this.saveLocalStorageEntries(collectionId, entries);
       }
     }
   }
 
-  static async updateEntries(updatedEntries: VocabEntry[], userId?: string): Promise<void> {
+  static async updateEntries(collectionId: string, updatedEntries: VocabEntry[], userId?: string): Promise<void> {
     if (userId && db) {
-      const firestore = db; // Alias pre TypeScript bezpečnosť v closure
+      const firestore = db;
       try {
         const batch = writeBatch(firestore);
         updatedEntries.forEach(entry => {
-          const ref = doc(firestore, 'users', userId, 'vocab', entry.id);
+          const ref = doc(firestore, 'users', userId, 'collections', collectionId, 'vocab', entry.id);
           batch.set(ref, entry, { merge: true });
         });
         await batch.commit();
@@ -103,7 +118,7 @@ export class VocabRepository {
         console.error('Error batch updating Firestore', e);
       }
     } else {
-      const entries = await this.getLocalStorage(true);
+      const entries = await this.getLocalStorageEntries(collectionId);
       const updateMap = new Map(updatedEntries.map(e => [e.id, e]));
       
       const newEntries = entries.map(entry => {
@@ -112,57 +127,50 @@ export class VocabRepository {
         }
         return entry;
       });
-      await this.saveLocalStorage(newEntries);
+      await this.saveLocalStorageEntries(collectionId, newEntries);
     }
   }
 
-  static async deleteEntry(id: string, userId?: string): Promise<void> {
+  static async deleteEntry(collectionId: string, id: string, userId?: string): Promise<void> {
     if (userId && db) {
       try {
-        await deleteDoc(doc(db, 'users', userId, 'vocab', id));
+        await deleteDoc(doc(db, 'users', userId, 'collections', collectionId, 'vocab', id));
       } catch (e) {
         console.error('Error deleting from Firestore', e);
       }
     } else {
-      const entries = await this.getLocalStorage(true);
+      const entries = await this.getLocalStorageEntries(collectionId);
       const filtered = entries.filter(e => e.id !== id);
-      await this.saveLocalStorage(filtered);
+      await this.saveLocalStorageEntries(collectionId, filtered);
     }
   }
 
   // --- Local Storage Helpers ---
 
-  /**
-   * @param useSeed Ak je true a storage je prázdny, vráti demo dáta. Ak false, vráti prázdne pole.
-   */
-  private static async getLocalStorage(useSeed: boolean): Promise<VocabEntry[]> {
+  private static getLocalStorageCollections(): VocabCollection[] {
     try {
-      const data = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (!data) {
-        return useSeed ? VocabRepository.seedInitialData() : [];
-      }
-      return JSON.parse(data);
+      const data = localStorage.getItem(LS_KEY_COLLECTIONS);
+      return data ? JSON.parse(data) : [];
     } catch (e) {
-      console.error('Error reading from storage', e);
       return [];
     }
   }
 
-  private static async saveLocalStorage(data: VocabEntry[]): Promise<void> {
+  private static getLocalStorageEntries(collectionId: string): VocabEntry[] {
     try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+      const data = localStorage.getItem(LS_KEY_DATA_PREFIX + collectionId);
+      if (!data) return [];
+      return JSON.parse(data);
     } catch (e) {
-      console.error('Error saving to storage', e);
+      return [];
     }
   }
 
-  private static seedInitialData(): VocabEntry[] {
-    const initialData: VocabEntry[] = [
-      { id: '1', slovak: 'Ahoj', english: 'Hello', status: VocabStatus.NEW, correctCount: 0, wrongCount: 0, isRevealed: false },
-      { id: '2', slovak: 'Ďakujem', english: 'Thank you', status: VocabStatus.NEW, correctCount: 0, wrongCount: 0, isRevealed: false },
-      { id: '3', slovak: 'Pes', english: 'Dog', status: VocabStatus.LEARNING, correctCount: 1, wrongCount: 0, lastReviewed: Date.now(), isRevealed: false },
-    ];
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(initialData));
-    return initialData;
+  private static async saveLocalStorageEntries(collectionId: string, data: VocabEntry[]): Promise<void> {
+    try {
+      localStorage.setItem(LS_KEY_DATA_PREFIX + collectionId, JSON.stringify(data));
+    } catch (e) {
+      console.error('Error saving to storage', e);
+    }
   }
 }
