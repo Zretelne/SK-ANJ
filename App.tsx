@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppTab } from './types';
 import { BottomNav } from './components/Layout/BottomNav';
 import { AppBar } from './components/Layout/AppBar';
@@ -14,8 +14,38 @@ const MainLayout: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<AppTab>(AppTab.NEW);
   const [showLogin, setShowLogin] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   
   const { user, signOut } = useAuth();
+
+  // Detect keyboard (input focus)
+  useEffect(() => {
+    const handleFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        setIsKeyboardOpen(true);
+      }
+    };
+
+    const handleFocusOut = () => {
+      // Small timeout to check if focus moved to another input or cleared completely
+      setTimeout(() => {
+        const active = document.activeElement as HTMLElement;
+        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+          return;
+        }
+        setIsKeyboardOpen(false);
+      }, 50);
+    };
+
+    window.addEventListener('focusin', handleFocusIn);
+    window.addEventListener('focusout', handleFocusOut);
+
+    return () => {
+      window.removeEventListener('focusin', handleFocusIn);
+      window.removeEventListener('focusout', handleFocusOut);
+    };
+  }, []);
 
   // Helper to determine title based on tab
   const getTitle = (tab: AppTab): string => {
@@ -68,10 +98,12 @@ const MainLayout: React.FC = () => {
         {renderScreen()}
       </main>
 
-      {/* Bottom Navigation */}
-      <div className="w-full max-w-md mx-auto bg-neutral-950">
-        <BottomNav currentTab={currentTab} onTabChange={setCurrentTab} />
-      </div>
+      {/* Bottom Navigation - Hidden when keyboard is open */}
+      {!isKeyboardOpen && (
+        <div className="w-full max-w-md mx-auto bg-neutral-950 animate-in slide-in-from-bottom-5 duration-200">
+          <BottomNav currentTab={currentTab} onTabChange={setCurrentTab} />
+        </div>
+      )}
 
       {/* Login Overlay */}
       {showLogin && (

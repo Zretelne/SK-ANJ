@@ -1,11 +1,11 @@
 import { VocabEntry, VocabStatus } from '../types';
 import { db } from '../lib/firebase';
-import {
-  collection,
-  getDocs,
-  doc,
-  setDoc,
-  deleteDoc,
+import { 
+  collection, 
+  getDocs, 
+  doc, 
+  setDoc, 
+  deleteDoc, 
   writeBatch,
   query,
   getDoc
@@ -20,35 +20,34 @@ export class VocabRepository {
    * Inak ťahá z LocalStorage.
    */
   static async getAllEntries(userId?: string): Promise<VocabEntry[]> {
-    const firestore = db;
-    if (userId && firestore) {
+    if (userId && db) {
       try {
         // --- MIGRÁCIA DÁT: LocalStorage -> Firestore ---
         // Skontrolujeme, či má užívateľ nejaké dáta v LocalStorage (z doby pred prihlásením)
         const localData = await this.getLocalStorage(false); // false = nevytvárať seed dáta
-
+        
         if (localData.length > 0) {
           console.log('Migrating local data to Firebase account...');
-          const batch = writeBatch(firestore);
-
+          const batch = writeBatch(db);
+          
           localData.forEach(entry => {
             // Použijeme ID slovíčka ako ID dokumentu
-            const ref = doc(firestore, 'users', userId, 'vocab', entry.id);
+            const ref = doc(db, 'users', userId, 'vocab', entry.id);
             // { merge: true } zabezpečí, že neprepíšeme existujúce polia ak by tam náhodou niečo bolo
             batch.set(ref, entry, { merge: true });
           });
 
           await batch.commit();
           console.log('Migration successful. Clearing local storage.');
-
+          
           // Vyčistíme lokálne úložisko, aby sa dáta neduplikovali pri odhlásení/prihlásení
           localStorage.removeItem(LOCAL_STORAGE_KEY);
         }
         // ----------------------------------------------
 
-        const querySnapshot = await getDocs(collection(firestore, 'users', userId, 'vocab'));
+        const querySnapshot = await getDocs(collection(db, 'users', userId, 'vocab'));
         const entries = querySnapshot.docs.map(doc => doc.data() as VocabEntry);
-
+        
         return entries;
       } catch (e) {
         console.error('Error fetching from Firestore', e);
@@ -60,10 +59,9 @@ export class VocabRepository {
   }
 
   static async addEntry(entry: VocabEntry, userId?: string): Promise<void> {
-    const firestore = db;
-    if (userId && firestore) {
+    if (userId && db) {
       try {
-        await setDoc(doc(firestore, 'users', userId, 'vocab', entry.id), entry);
+        await setDoc(doc(db, 'users', userId, 'vocab', entry.id), entry);
       } catch (e) {
         console.error('Error adding to Firestore', e);
       }
@@ -75,10 +73,9 @@ export class VocabRepository {
   }
 
   static async updateEntry(updatedEntry: VocabEntry, userId?: string): Promise<void> {
-    const firestore = db;
-    if (userId && firestore) {
+    if (userId && db) {
       try {
-        await setDoc(doc(firestore, 'users', userId, 'vocab', updatedEntry.id), updatedEntry, { merge: true });
+        await setDoc(doc(db, 'users', userId, 'vocab', updatedEntry.id), updatedEntry, { merge: true });
       } catch (e) {
         console.error('Error updating Firestore', e);
       }
@@ -108,7 +105,7 @@ export class VocabRepository {
     } else {
       const entries = await this.getLocalStorage(true);
       const updateMap = new Map(updatedEntries.map(e => [e.id, e]));
-
+      
       const newEntries = entries.map(entry => {
         if (updateMap.has(entry.id)) {
           return updateMap.get(entry.id)!;
@@ -120,10 +117,9 @@ export class VocabRepository {
   }
 
   static async deleteEntry(id: string, userId?: string): Promise<void> {
-    const firestore = db;
-    if (userId && firestore) {
+    if (userId && db) {
       try {
-        await deleteDoc(doc(firestore, 'users', userId, 'vocab', id));
+        await deleteDoc(doc(db, 'users', userId, 'vocab', id));
       } catch (e) {
         console.error('Error deleting from Firestore', e);
       }
