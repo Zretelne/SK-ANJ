@@ -1,12 +1,10 @@
 import { UserStats } from '../types';
-import { db } from '../lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const LS_KEY_STATS = 'slovnik_stats';
 
 export class StatsService {
   
-  // Helper to get local YYYY-MM-DD date to avoid UTC streak issues
+  // Helper to get local YYYY-MM-DD date
   static getTodayDate(): string {
     const d = new Date();
     const year = d.getFullYear();
@@ -68,26 +66,12 @@ export class StatsService {
 
   static async getStats(userId?: string): Promise<UserStats> {
     const empty = this.getEmptyStats();
-
-    if (userId && db) {
-      try {
-        const docRef = doc(db, 'users', userId, 'stats', 'main');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          // MERGE with default stats to ensure all fields exist (prevents undefined crashes)
-          return { ...empty, ...docSnap.data() } as UserStats;
-        }
-      } catch (e) {
-        console.error('Error fetching stats from Firestore', e);
-      }
-    } 
     
-    // Fallback to LocalStorage or if user not logged in
+    // Always use LocalStorage
     try {
       const data = localStorage.getItem(LS_KEY_STATS);
       if (data) {
         const parsed = JSON.parse(data);
-        // MERGE with default stats here too
         return { ...empty, ...parsed };
       }
       return empty;
@@ -97,15 +81,6 @@ export class StatsService {
   }
 
   static async saveStats(stats: UserStats, userId?: string): Promise<void> {
-    // Always save to LS for offline capability / speed
     localStorage.setItem(LS_KEY_STATS, JSON.stringify(stats));
-
-    if (userId && db) {
-      try {
-        await setDoc(doc(db, 'users', userId, 'stats', 'main'), stats, { merge: true });
-      } catch (e) {
-        console.error('Error saving stats to Firestore', e);
-      }
-    }
   }
 }

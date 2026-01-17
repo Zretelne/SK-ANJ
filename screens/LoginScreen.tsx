@@ -1,97 +1,90 @@
 import React, { useState } from 'react';
-import { signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider } from '../lib/firebase';
-import { AlertCircle, X } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { AlertCircle, Smartphone, Globe, ShieldCheck } from 'lucide-react';
 
-interface LoginScreenProps {
-  onClose: () => void;
-}
-
-export const LoginScreen: React.FC<LoginScreenProps> = ({ onClose }) => {
+export const LoginScreen: React.FC = () => {
+  const { signInLocal } = useAuth();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleGoogleLogin = async () => {
+  const handleLocalLogin = async () => {
     setError('');
     setLoading(true);
 
-    if (!auth || !googleProvider) {
-        setError('Firebase nie je správne nakonfigurovaný.');
-        setLoading(false);
-        return;
-    }
-
     try {
-      await signInWithPopup(auth, googleProvider);
-      onClose();
+      // Simulate network delay for effect
+      await new Promise(resolve => setTimeout(resolve, 800));
+      await signInLocal();
     } catch (err: any) {
-      console.error(err);
-      if (err.code === 'auth/popup-closed-by-user') {
-        // User closed popup, no error needed usually
-        setLoading(false);
-        return;
-      }
-      setError('Nastala chyba pri prihlasovaní: ' + err.message);
+      setError('Nepodarilo sa prihlásiť.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/90 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-neutral-900 w-full max-w-sm p-8 rounded-3xl border border-neutral-800 shadow-2xl relative">
-        <button 
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-gray-500 hover:text-white rounded-full transition-colors"
-        >
-          <X className="w-6 h-6" />
-        </button>
-
-        <div className="text-center mb-10">
-          <h2 className="text-2xl font-bold text-white mb-3">
-            Vitajte v 1% Slovníku
-          </h2>
-          <p className="text-gray-500 text-sm leading-relaxed">
-            Prihláste sa pomocou Google účtu pre zálohovanie a synchronizáciu vašich slovíčok.
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          {error && (
-            <div className="flex items-center space-x-2 text-red-500 text-xs bg-red-900/20 p-3 rounded-xl border border-red-900/30">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <button
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            className="w-full py-4 bg-white hover:bg-gray-100 disabled:bg-gray-300 disabled:text-gray-500 text-neutral-900 font-bold rounded-2xl transition-all shadow-lg flex items-center justify-center space-x-3 active:scale-[0.98]"
-          >
-            {loading ? (
-               <span>Pripájam sa...</span>
-            ) : (
-                <>
-                    {/* Simple Google SVG Icon */}
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z" fill="#FBBC05" />
-                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                    </svg>
-                    <span>Pokračovať cez Google</span>
-                </>
-            )}
-          </button>
-        </div>
+    <div className="flex flex-col items-center justify-center min-h-full p-6 bg-neutral-950 relative overflow-hidden">
         
-        <div className="mt-8 text-center px-4">
-            <p className="text-xs text-neutral-600">
-                Používaním aplikácie súhlasíte s podmienkami používania a spracovaním osobných údajov.
-            </p>
+        {/* Background Accents */}
+        <div className="absolute top-[-20%] left-[-10%] w-[300px] h-[300px] bg-red-600/20 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[250px] h-[250px] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
+
+        <div className="w-full max-w-sm z-10 flex flex-col justify-between h-full max-h-[600px]">
+            
+            <div className="flex-1 flex flex-col justify-center items-center text-center">
+                <div className="w-24 h-24 bg-neutral-900 rounded-[2rem] border border-neutral-800 flex items-center justify-center mb-8 shadow-2xl">
+                    <span className="text-4xl font-black text-white">1%</span>
+                </div>
+                
+                <h1 className="text-4xl font-bold text-white mb-4 tracking-tight">
+                    Zlepšite sa <br />
+                    <span className="text-red-600">každý deň</span>
+                </h1>
+                
+                <p className="text-gray-400 text-lg leading-relaxed max-w-xs mx-auto">
+                    Jednoduchý a efektívny spôsob, ako si budovať slovnú zásobu v cudzom jazyku.
+                </p>
+            </div>
+
+            <div className="space-y-4 w-full mt-10">
+                {error && (
+                    <div className="flex items-center space-x-2 text-red-500 text-xs bg-red-900/20 p-3 rounded-xl border border-red-900/30">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                        <span>{error}</span>
+                    </div>
+                )}
+
+                <div className="bg-neutral-900/50 p-4 rounded-2xl border border-neutral-800 mb-6 space-y-3">
+                    <div className="flex items-center space-x-3 text-sm text-gray-400">
+                        <Globe className="w-4 h-4 text-red-500" />
+                        <span>Preklady poháňané AI</span>
+                    </div>
+                    <div className="flex items-center space-x-3 text-sm text-gray-400">
+                        <ShieldCheck className="w-4 h-4 text-green-500" />
+                        <span>Offline režim (Privacy first)</span>
+                    </div>
+                </div>
+
+                <button
+                    onClick={handleLocalLogin}
+                    disabled={loading}
+                    className="w-full py-4 bg-white hover:bg-gray-100 disabled:bg-gray-300 text-neutral-900 font-bold rounded-2xl transition-all shadow-lg shadow-white/10 flex items-center justify-center space-x-3 active:scale-[0.98]"
+                >
+                    {loading ? (
+                        <span>Prihlasujem...</span>
+                    ) : (
+                        <>
+                            <Smartphone className="w-5 h-5 text-neutral-900" />
+                            <span>Vyskúšať aplikáciu</span>
+                        </>
+                    )}
+                </button>
+                
+                <p className="text-[10px] text-center text-neutral-600 pt-2">
+                    Pokračovaním súhlasíte s podmienkami používania.
+                </p>
+            </div>
         </div>
-      </div>
     </div>
   );
 };

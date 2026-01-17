@@ -4,6 +4,7 @@ import { TTSService } from '../../services/TTSService';
 
 interface SpeakerButtonProps {
   text: string;
+  lang?: string; // e.g. 'en', 'de', 'es'
   className?: string;
   size?: number;
   color?: string;
@@ -11,6 +12,7 @@ interface SpeakerButtonProps {
 
 export const SpeakerButton: React.FC<SpeakerButtonProps> = ({ 
   text, 
+  lang = 'en',
   className = '', 
   size = 18,
   color = 'currentColor'
@@ -37,7 +39,9 @@ export const SpeakerButton: React.FC<SpeakerButtonProps> = ({
 
     setIsPlaying(true);
     
-    TTSService.speak(text, 'en-US', () => {
+    // Map short codes to full locale codes if necessary, or just rely on browser defaults
+    // Most browsers handle 'de' as 'de-DE' fine, but we can be explicit if needed.
+    TTSService.speak(text, lang, () => {
       // This callback runs exactly when speech finishes
       setIsPlaying(false);
     });
@@ -48,7 +52,7 @@ export const SpeakerButton: React.FC<SpeakerButtonProps> = ({
       type="button"
       onClick={handleSpeak}
       className={`p-2 rounded-full hover:bg-neutral-800 transition-colors active:scale-95 ${className}`}
-      title="Prehrať výslovnosť"
+      title={`Prehrať výslovnosť (${lang})`}
     >
       <Volume2 
         size={size} 

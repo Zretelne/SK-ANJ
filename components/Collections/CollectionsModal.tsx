@@ -10,14 +10,16 @@ export const CollectionsModal: React.FC<CollectionsModalProps> = ({ onClose }) =
   const { collections, activeCollection, setActiveCollectionId, createCollection, deleteCollection } = useVocab();
   const [isCreating, setIsCreating] = useState(false);
   const [newColName, setNewColName] = useState('');
+  const [newColLang, setNewColLang] = useState('en');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newColName.trim()) return;
     
-    await createCollection(newColName.trim());
+    await createCollection(newColName.trim(), newColLang);
     setNewColName('');
+    setNewColLang('en');
     setIsCreating(false);
     onClose();
   };
@@ -38,6 +40,15 @@ export const CollectionsModal: React.FC<CollectionsModalProps> = ({ onClose }) =
         setTimeout(() => setDeleteConfirmId(null), 3000);
     }
   };
+
+  const langs = [
+    { code: 'en', label: 'EN Angličtina' },
+    { code: 'de', label: 'DE Nemčina' },
+    { code: 'es', label: 'ES Španielčina' },
+    { code: 'fr', label: 'FR Francúzština' },
+    { code: 'it', label: 'IT Taliančina' },
+    { code: 'ru', label: 'RU Ruština' },
+  ];
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-neutral-950 animate-in slide-in-from-bottom duration-300">
@@ -75,7 +86,9 @@ export const CollectionsModal: React.FC<CollectionsModalProps> = ({ onClose }) =
                         }`}
                     >
                         <div className="flex items-center space-x-3">
-                            <div className={`w-3 h-3 rounded-full ${isActive ? 'bg-red-500' : 'bg-neutral-700'}`}></div>
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${isActive ? 'bg-red-600 text-white' : 'bg-neutral-800 text-gray-400'}`}>
+                                {col.targetLang?.toUpperCase() || 'EN'}
+                            </div>
                             <div>
                                 <h3 className={`font-bold text-lg ${isActive ? 'text-white' : 'text-gray-300'}`}>
                                     {col.name}
@@ -121,10 +134,26 @@ export const CollectionsModal: React.FC<CollectionsModalProps> = ({ onClose }) =
             <div className="bg-neutral-900 p-5 rounded-2xl border border-neutral-800 mt-4 animate-in fade-in zoom-in-95">
                 <h3 className="text-white font-bold mb-3">Nový slovník</h3>
                 <form onSubmit={handleCreate}>
+                    <div className="flex gap-2 mb-3 overflow-x-auto pb-2 scrollbar-hide">
+                        {langs.map(l => (
+                            <button
+                                key={l.code}
+                                type="button"
+                                onClick={() => setNewColLang(l.code)}
+                                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-colors whitespace-nowrap ${
+                                    newColLang === l.code 
+                                    ? 'bg-red-600 text-white border-red-500' 
+                                    : 'bg-neutral-950 text-gray-400 border-neutral-800 hover:bg-neutral-800'
+                                }`}
+                            >
+                                {l.label}
+                            </button>
+                        ))}
+                    </div>
                     <input
                         autoFocus
                         type="text"
-                        placeholder="Názov (napr. Nemčina - Dovolenka)"
+                        placeholder="Názov (napr. Francúzština - Základy)"
                         className="w-full p-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:border-red-500 mb-3"
                         value={newColName}
                         onChange={(e) => setNewColName(e.target.value)}

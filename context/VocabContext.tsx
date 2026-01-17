@@ -11,11 +11,11 @@ interface VocabContextType {
   isLoading: boolean;
   userStats: UserStats;
   
-  createCollection: (name: string) => Promise<void>;
+  createCollection: (name: string, targetLang: string) => Promise<void>;
   setActiveCollectionId: (id: string) => void;
   deleteCollection: (id: string) => Promise<void>;
 
-  addEntry: (slovak: string, english: string, sentence?: string) => Promise<void>;
+  addEntry: (slovak: string, english: string, sentence?: string, sentenceFront?: string) => Promise<void>;
   updateEntry: (entry: VocabEntry) => Promise<void>;
   deleteEntry: (id: string) => Promise<void>;
   getEntriesByStatus: (status: VocabStatus) => VocabEntry[];
@@ -45,20 +45,14 @@ export const VocabProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       
       // Load Collections
       const cols = await VocabRepository.getCollections(user?.uid);
+      setCollections(cols);
+
       if (cols.length > 0) {
-        setCollections(cols);
         if (!activeCollectionId || !cols.find(c => c.id === activeCollectionId)) {
           setActiveCollectionId(cols[0].id);
         }
       } else {
-        const defaultCol: VocabCollection = {
-            id: crypto.randomUUID(),
-            name: 'SK - ANJ',
-            createdAt: Date.now()
-        };
-        await VocabRepository.createCollection(defaultCol, user?.uid);
-        setCollections([defaultCol]);
-        setActiveCollectionId(defaultCol.id);
+        setActiveCollectionId(null);
       }
 
       // Load Stats
@@ -74,7 +68,10 @@ export const VocabProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // 2. Load Entries when Active Collection Changes
   useEffect(() => {
     const loadEntries = async () => {
-      if (!activeCollectionId) return;
+      if (!activeCollectionId) {
+        setEntries([]);
+        return;
+      }
       const data = await VocabRepository.getAllEntries(activeCollectionId, user?.uid);
       setEntries(data);
     };
@@ -91,10 +88,11 @@ export const VocabProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // --- Actions ---
 
-  const createCollection = async (name: string) => {
+  const createCollection = async (name: string, targetLang: string) => {
     const newCol: VocabCollection = {
       id: crypto.randomUUID(),
       name,
+      targetLang: targetLang || 'en', // Default to EN if missing
       createdAt: Date.now()
     };
     
@@ -114,7 +112,7 @@ export const VocabProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await VocabRepository.deleteCollection(id, user?.uid);
   };
 
-  const addEntry = async (slovak: string, english: string, sentence?: string) => {
+  const addEntry = async (slovak: string, english: string, sentence?: string, sentenceFront?: string) => {
     if (!activeCollectionId) return;
 
     const newEntry: VocabEntry = {
@@ -122,6 +120,7 @@ export const VocabProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       slovak,
       english,
       sentence: sentence || '',
+      sentenceFront: sentenceFront || '',
       status: VocabStatus.NEW,
       correctCount: 0,
       wrongCount: 0,

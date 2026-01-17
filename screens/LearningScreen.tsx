@@ -13,12 +13,14 @@ export const LearningScreen: React.FC = () => {
     toggleReveal, 
     resetAllRevealed, 
     updateEntry,
-    recordTestResult 
+    recordTestResult,
+    activeCollection
   } = useVocab();
   
   const words = getEntriesByStatus(VocabStatus.LEARNING);
   const [isTesting, setIsTesting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const targetLang = activeCollection?.targetLang || 'en';
 
   // Filter Logic
   const filteredWords = words.filter(word => 
@@ -33,6 +35,7 @@ export const LearningScreen: React.FC = () => {
         words={words} 
         onComplete={() => setIsTesting(false)} 
         onRecordResult={recordTestResult}
+        targetLang={targetLang}
       />
     );
   }
@@ -125,27 +128,39 @@ export const LearningScreen: React.FC = () => {
                 onClick={() => handleToggle(word)}
                 className="bg-neutral-900 border border-neutral-800/50 rounded-xl shadow-sm overflow-hidden active:bg-neutral-800 transition-colors cursor-pointer group"
               >
-                <div className="p-3 flex items-center min-h-[4rem]">
+                <div className="p-3 flex min-h-[4rem]">
                   
-                  {/* Left Column: Slovak */}
-                  <div className="w-[45%] shrink-0 pr-3 border-r border-neutral-800 flex flex-col justify-center">
-                    <span className="text-base font-bold text-white block truncate">{word.slovak}</span>
+                  {/* Left Column: Slovak + Sentence */}
+                  <div className="w-[40%] shrink-0 pr-3 border-r border-neutral-800 flex flex-col justify-center py-1">
+                    <span className="text-base font-bold text-white break-words leading-tight">{word.slovak}</span>
+                    {word.sentenceFront && (
+                        <p className="text-[10px] text-gray-500 italic mt-1.5 leading-snug break-words">
+                            {word.sentenceFront}
+                        </p>
+                    )}
                   </div>
 
-                  {/* Right Column Container: English + Stats */}
-                  <div className="flex-1 pl-3 flex items-center justify-between min-w-0">
+                  {/* Right Column Container: English + Sentence + Stats */}
+                  <div className="flex-1 pl-3 flex justify-between min-w-0 py-1">
                     
-                    {/* English Word (Middle) */}
-                    <div className="flex-1 min-w-0 mr-2">
+                    {/* Middle: English Word + Sentence */}
+                    <div className="flex-1 min-w-0 mr-2 flex flex-col justify-center">
                       {word.isRevealed ? (
-                        <div className="flex items-center justify-between animate-in fade-in duration-300">
-                          <span className="text-red-500 font-bold text-base truncate block">
-                            {word.english}
-                          </span>
-                          <SpeakerButton text={word.english} size={18} className="text-red-500/80 hover:text-red-500 ml-2 shrink-0" />
+                        <div className="animate-in fade-in duration-300">
+                            <div className="flex items-start justify-between">
+                                <span className="text-red-500 font-bold text-base break-words leading-tight">
+                                    {word.english}
+                                </span>
+                                <SpeakerButton text={word.english} lang={targetLang} size={16} className="text-red-500/80 hover:text-red-500 ml-1 mt-[-2px] shrink-0" />
+                            </div>
+                            {word.sentence && (
+                                <p className="text-[10px] text-red-400/70 italic mt-1.5 leading-snug break-words">
+                                    {word.sentence}
+                                </p>
+                            )}
                         </div>
                       ) : (
-                        <div className="flex items-center text-neutral-700 w-full select-none">
+                        <div className="flex items-center text-neutral-700 w-full select-none h-full">
                           <div className="flex-1 filter blur-sm truncate opacity-50 block">
                              {word.english}
                           </div>
@@ -154,8 +169,8 @@ export const LearningScreen: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Stats Column (Right Edge) */}
-                    <div className="flex flex-col space-y-1 shrink-0 ml-1">
+                    {/* Stats Column (Right Edge) - Always visible */}
+                    <div className="flex flex-col space-y-1 shrink-0 ml-1 justify-center">
                       <span className="text-[9px] font-bold px-1.5 py-0.5 bg-green-900/30 text-green-500 rounded-md border border-green-900/30 text-center min-w-[24px]">
                         {word.correctCount}
                       </span>

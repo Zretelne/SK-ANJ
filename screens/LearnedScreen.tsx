@@ -8,8 +8,9 @@ import { SearchBar } from '../components/UI/SearchBar';
 import { SpeakerButton } from '../components/UI/SpeakerButton';
 
 export const LearnedScreen: React.FC = () => {
-  const { getEntriesByStatus, deleteEntry, updateEntry, recordTestResult } = useVocab();
+  const { getEntriesByStatus, deleteEntry, updateEntry, recordTestResult, activeCollection } = useVocab();
   const words = getEntriesByStatus(VocabStatus.LEARNED);
+  const targetLang = activeCollection?.targetLang || 'en';
   
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isTesting, setIsTesting] = useState(false);
@@ -58,6 +59,7 @@ export const LearnedScreen: React.FC = () => {
         words={testWords}
         onComplete={() => setIsTesting(false)}
         onRecordResult={recordTestResult}
+        targetLang={targetLang}
       />
     );
   }
@@ -115,23 +117,37 @@ export const LearnedScreen: React.FC = () => {
                 rightIcon={<BookOpen className="text-white w-6 h-6" />}
                 leftIcon={<Trash2 className="text-white w-6 h-6" />}
               >
-                <div className="bg-neutral-900 border border-neutral-800/50 p-3 rounded-xl shadow-sm flex items-center group hover:border-neutral-700 transition-colors">
+                <div className="bg-neutral-900 border border-neutral-800/50 p-3 rounded-xl shadow-sm flex group hover:border-neutral-700 transition-colors">
                   
-                  <div className="flex-1 flex items-center min-w-0">
-                    {/* Left Column: Slovak */}
-                    <div className="w-[45%] shrink-0 pr-3 border-r border-neutral-800">
-                        <p className="font-semibold text-gray-300 line-through decoration-red-600/50 truncate decoration-2 text-base">{word.slovak}</p>
+                  <div className="flex-1 flex min-w-0">
+                    {/* Left Column: Slovak + Sentence */}
+                    <div className="w-[45%] shrink-0 pr-3 border-r border-neutral-800 flex flex-col justify-center">
+                        <p className="font-semibold text-gray-300 line-through decoration-red-600/50 decoration-2 text-base break-words leading-tight">
+                            {word.slovak}
+                        </p>
+                        {word.sentenceFront && (
+                            <p className="text-[10px] text-gray-600 italic mt-1 leading-snug break-words">
+                                {word.sentenceFront}
+                            </p>
+                        )}
                     </div>
 
-                    {/* Right Column: English */}
-                    <div className="flex-1 min-w-0 pl-3 flex items-center justify-between">
-                         <p className="text-gray-600 truncate text-sm flex-1">{word.english}</p>
-                         <SpeakerButton text={word.english} size={16} className="text-gray-600 hover:text-white ml-2" />
+                    {/* Right Column: English + Sentence */}
+                    <div className="flex-1 min-w-0 pl-3 flex flex-col justify-center">
+                         <div className="flex items-start justify-between">
+                            <p className="text-gray-400 text-sm flex-1 break-words leading-tight">{word.english}</p>
+                            <SpeakerButton text={word.english} lang={targetLang} size={14} className="text-gray-600 hover:text-white ml-2 mt-[-2px]" />
+                         </div>
+                         {word.sentence && (
+                            <p className="text-[10px] text-gray-600 italic mt-1 leading-snug break-words">
+                                {word.sentence}
+                            </p>
+                        )}
                     </div>
                   </div>
 
                   {/* Icon Right */}
-                  <div className="flex items-center space-x-2 ml-2 pl-2 border-l border-neutral-800">
+                  <div className="flex items-center space-x-2 ml-2 pl-2 border-l border-neutral-800 shrink-0">
                     <CheckCircle className="w-4 h-4 text-green-600" />
                   </div>
 

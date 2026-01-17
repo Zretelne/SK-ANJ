@@ -15,14 +15,16 @@ export enum VocabStatus {
 export interface VocabCollection {
   id: string;
   name: string; // Napr. "Angličtina", "Nemčina - frázy"
+  targetLang: string; // 'en', 'de', 'es', 'fr', 'it', 'ru'
   createdAt: number;
 }
 
 export interface VocabEntry {
   id: string;
   slovak: string; // Toto chápeme ako "Front side" (Zdrojový jazyk)
-  english: string; // Toto chápeme ako "Back side" (Cieľový jazyk)
-  sentence?: string; // Vzorová veta pre kontext
+  english: string; // Toto chápeme ako "Back side" (Cieľový jazyk - aj keď sa volá english, bude to targetLang)
+  sentence?: string; // Vzorová veta v cieľovom jazyku
+  sentenceFront?: string; // Vzorová veta v zdrojovom jazyku (Slovenčina)
   status: VocabStatus;
   correctCount: number;
   wrongCount: number;

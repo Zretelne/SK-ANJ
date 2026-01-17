@@ -7,9 +7,10 @@ interface TestModeProps {
   words: VocabEntry[];
   onComplete: () => void;
   onRecordResult: (id: string, isCorrect: boolean) => Promise<void>;
+  targetLang?: string;
 }
 
-export const TestMode: React.FC<TestModeProps> = ({ words, onComplete, onRecordResult }) => {
+export const TestMode: React.FC<TestModeProps> = ({ words, onComplete, onRecordResult, targetLang = 'en' }) => {
   // Inicializujeme testovací zoznam (queue) iba raz pri prvom načítaní komponentu.
   const [queue] = useState<VocabEntry[]>(() => {
     return [...words].sort(() => Math.random() - 0.5);
@@ -154,7 +155,7 @@ export const TestMode: React.FC<TestModeProps> = ({ words, onComplete, onRecordR
                 <span className="text-red-400 text-xs font-bold uppercase tracking-wide">Správna odpoveď</span>
                 <span className="font-bold text-red-200 text-xl block mt-1">{currentWord.english}</span>
               </div>
-              <SpeakerButton text={currentWord.english} className="text-red-500 hover:bg-red-900/20" size={24} />
+              <SpeakerButton text={currentWord.english} lang={targetLang} className="text-red-500 hover:bg-red-900/20" size={24} />
             </div>
           )}
 
